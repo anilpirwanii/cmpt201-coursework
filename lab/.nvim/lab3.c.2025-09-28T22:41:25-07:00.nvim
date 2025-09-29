@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+  char *history[5] = {NULL, NULL, NULL, NULL, NULL;
+  char *line = NULL;
+    size_t len = 0;
+    int count = 0;
+    
+    while (1) {
+        printf("Enter input: ");
+        ssize_t read = getline(&line, &len, stdin);
+        
+        if (read == -1) break;  // Ctrl+D or error
+        
+        // Remove newline character
+        if (line[read - 1] == '\n') {
+            line[read - 1] = '\0';
+        }
+        
+        // Check if command is "print"
+        if (strcmp(line, "print") == 0) {
+            // TODO: Print history
+        } else {
+            // TODO: Add to history
+        }
+    }
+    
+    // TODO: Cleanup - free all memory
+    
+    return 0;
+}

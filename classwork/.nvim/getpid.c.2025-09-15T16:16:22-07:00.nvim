@@ -1,0 +1,14 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int main() {
+  int pid;
+  pid_t getpid(void);
+  pid_t getppid(void);
+  if (pid > 0) {
+    printf("Parent", pid);
+  } else {
+    printf("child");
+  }
+}

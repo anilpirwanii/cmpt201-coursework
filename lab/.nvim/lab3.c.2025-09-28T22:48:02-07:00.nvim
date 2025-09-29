@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void print_history(char *history[], int count) {
+  
+    int items_to_print = (count < 5) ? count : 5;
+    
+    int start_pos;
+    if (count < 5) {
+        start_pos = 0;
+    } else {
+        start_pos = count % 5;
+    }
+    
+    for (int i = 0; i < items_to_print; i++) {
+        int index = (start_pos + i) % 5;
+        if (history[index] != NULL) {
+            printf("%s\n", history[index]);
+        }
+    }
+}
+
+void add_to_history(char *history[], int count, char *line) {
+    int pos = count % 5;
+    
+       if (history[pos] != NULL) {
+        free(history[pos]);
+    }
+    
+       history[pos] = strdup(line);
+}
+
+int main() {
+    char *history[5] = {NULL, NULL, NULL, NULL, NULL};
+    char *line = NULL;
+    size_t len = 0;
+    int count = 0;
+    
+    while (1) {
+        printf("Enter input: ");
+        ssize_t read = getline(&line, &len, stdin);
+        
+        if (read == -1) break;         
+        
+        if (line[read - 1] == '\n') {
+            line[read - 1] = '\0';
+        }
+        
+       
+        if (strcmp(line, "print") == 0) {
+                  add_to_history(history, count, line);
+            count++;
+            print_history(history, count);
+        } else {
+            // Add line to history
+            add_to_history(history, count, line);
+            count++;
+        }
+    }
+    
+    // Cleanup: free all stored strings
+    for (int i = 0; i < 5; i++) {
+        if (history[i] != NULL) {
+            free(history[i]);
+        }
+    }
+    free(line);  // Free getline's buffer
+    
+    return 0;
+}
