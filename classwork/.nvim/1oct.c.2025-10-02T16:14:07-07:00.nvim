@@ -1,0 +1,12 @@
+
+
+
+struct Node{
+  int data;
+  struct node *next;
+};
+
+struct Node *createNode(int data) {
+  struct Node *newNode
+    = malloc(sizeof(*newNode));
+  newNode->data = data
