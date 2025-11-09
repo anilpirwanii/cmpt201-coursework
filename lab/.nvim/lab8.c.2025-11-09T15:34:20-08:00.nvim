@@ -1,4 +1,4 @@
-
+// Lab 8 - Starting Code for sorting data in threads using uthash
 #include "uthash.h"
 #include <pthread.h>
 #include <stdio.h>
@@ -74,8 +74,7 @@ static count_map_t count_words_parallel(word_t *words, size_t num_words) {
         chunk_size + (i == THREAD_COUNT - 1 ? num_words % THREAD_COUNT : 0);
 
     // TODO: Prepare the arguments and launch the threads
-    threads_args[i] =
-        pack_args(&map, thread_arg_words, thread_arg_num_words, &count_mutex);
+    threads_args[i] = pack_args(&map, thread_arg_words, thread_arg_num_words, &count_mutex);
     pthread_create(&threads[i], NULL, counter_thread_func, threads_args[i]);
   }
 
@@ -86,9 +85,9 @@ static count_map_t count_words_parallel(word_t *words, size_t num_words) {
 
   // TODO: Cleanup
   for (size_t i = 0; i < THREAD_COUNT; i++) {
-    free(threads_args[i]);
+  free(threads_args[i]);
   }
-  pthread_mutex_destroy(&count_mutex);
+  pthread_mutex_destroy(&count_mutex);  
   return map;
 }
 
@@ -125,7 +124,7 @@ int main(void) {
     // --------- Task 1 --------- \\
     // Sort the table by the sort function in uthash using `sort_func`.
     // TODO
-    HASH_SORT(word_map, sort_func);
+
     print_counts(word_map);
   }
 

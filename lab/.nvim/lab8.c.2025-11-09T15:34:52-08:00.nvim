@@ -1,4 +1,4 @@
-
+// Lab 8 - Starting Code for sorting data in threads using uthash
 #include "uthash.h"
 #include <pthread.h>
 #include <stdio.h>
@@ -125,7 +125,7 @@ int main(void) {
     // --------- Task 1 --------- \\
     // Sort the table by the sort function in uthash using `sort_func`.
     // TODO
-    HASH_SORT(word_map, sort_func);
+
     print_counts(word_map);
   }
 
