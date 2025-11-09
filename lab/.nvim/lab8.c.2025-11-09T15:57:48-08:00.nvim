@@ -1,8 +1,8 @@
 
+#include <uthash.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <uthash.h>
 #define THREAD_COUNT 3
 typedef const char *word_t;
 
