@@ -1,0 +1,162 @@
+#define _DEFAULT_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include "uthash.h"
+
+typedef struct word_count {
+    char word[50];
+    int count;
+    UT_hash_handle hh;
+} word_count_t;
+
+typedef struct thread_args {
+    int thread_id;
+    int num_threads;
+    char** words;
+    int num_words;
+    word_count_t** word_map_ptr;
+    pthread_mutex_t* count_mutex;
+} thread_args_t;
+
+const char* THE_WORDS[] = {
+    "the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog",
+    "the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "fox",
+};
+const int NUM_WORDS = sizeof(THE_WORDS) / sizeof(THE_WORDS[0]);
+
+int sort_func(word_count_t* a, word_count_t* b) {
+    return strcmp(a->word, b->word);
+}
+
+void print_word_counts(word_count_t* word_map) {
+    printf("Word                            Count\n");
+    word_count_t* s;
+    for (s = word_map; s != NULL; s = s->hh.next) {
+        printf("%-30s%d\n", s->word, s->count);
+    }
+}
+
+thread_args_t* pack_args(int thread_id, int num_threads, char** words,
+                         int num_words, word_count_t** word_map_ptr,
+                         pthread_mutex_t* count_mutex) {
+    thread_args_t* args = (thread_args_t*)malloc(sizeof(thread_args_t));
+    if (args == NULL) {
+        perror("Failed to malloc for thread args");
+        exit(EXIT_FAILURE);
+    }
+    args->thread_id = thread_id;
+    args->num_threads = num_threads;
+    args->words = (char**)words;
+    args->num_words = num_words;
+    args->word_map_ptr = word_map_ptr;
+    args->count_mutex = count_mutex;
+    return args;
+}
+
+void add_word_counts_in_chunk(int thread_id, int num_threads, char** words,
+                              int num_words, word_count_t** word_map_ptr,
+                              pthread_mutex_t* count_mutex) {
+    int chunk_size = num_words / num_threads;
+    int start = thread_id * chunk_size;
+    int end = (thread_id == num_threads - 1) ? num_words : start + chunk_size;
+
+    for (int i = start; i < end; i++) {
+        const char* word = words[i];
+        word_count_t* found_item = NULL;
+
+        pthread_mutex_lock(count_mutex);
+
+        HASH_FIND_STR(*word_map_ptr, word, found_item);
+
+        if (found_item) {
+            found_item->count++;
+        } else {
+            found_item = (word_count_t*)malloc(sizeof(word_count_t));
+            if (found_item == NULL) {
+                perror("Failed to malloc for new word");
+                pthread_mutex_unlock(count_mutex);
+                continue;
+            }
+            strncpy(found_item->word, word, sizeof(found_item->word) - 1);
+            found_item->word[sizeof(found_item->word) - 1] = '\0';
+            found_item->count = 1;
+            HASH_ADD_STR(*word_map_ptr, word, found_item);
+        }
+
+        pthread_mutex_unlock(count_mutex);
+    }
+}
+
+void* counter_thread_func(void* arg) {
+    thread_args_t* args = (thread_args_t*)arg;
+    
+    add_word_counts_in_chunk(
+        args->thread_id,
+        args->num_threads,
+        args->words,
+        args->num_words,
+        args->word_map_ptr,
+        args->count_mutex
+    );
+    
+    return NULL;
+}
+
+void count_words_seq(int num_threads, char** words, int num_words,
+                     word_count_t** word_map_ptr,
+                     pthread_mutex_t* count_mutex) {
+    add_word_counts_in_chunk(0, 1, words, num_words, word_map_ptr, count_mutex);
+}
+
+void count_words_parallel(int num_threads, char** words, int num_words,
+                          word_count_t** word_map_ptr,
+                          pthread_mutex_t* count_mutex) {
+    
+    pthread_t threads[num_threads];
+    thread_args_t* threads_args[num_threads];
+
+    if (pthread_mutex_init(count_mutex, NULL) != 0) {
+        perror("Mutex init failed");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < num_threads; i++) {
+        threads_args[i] = pack_args(i, num_threads, words, num_words, 
+                                    word_map_ptr, count_mutex);
+        
+        if (pthread_create(&threads[i], NULL, counter_thread_func, threads_args[i]) != 0) {
+            perror("Failed to create thread");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (int i = 0; i < num_threads; i++) {
+        pthread_join(threads[i], NULL);
+        free(threads_args[i]);
+    }
+}
+
+int main() {
+    const int NUM_THREADS = 4;
+    word_count_t* word_map = NULL;
+    pthread_mutex_t count_mutex;
+
+    // count_words_seq(NUM_THREADS, (char**)THE_WORDS, NUM_WORDS, &word_map, &count_mutex);
+    count_words_parallel(NUM_THREADS, (char**)THE_WORDS, NUM_WORDS, &word_map, &count_mutex);
+
+    HASH_SORT(word_map, sort_func);
+
+    print_word_counts(word_map);
+
+    word_count_t *current_word, *tmp;
+    HASH_ITER(hh, word_map, current_word, tmp) {
+        HASH_DEL(word_map, current_word);
+        free(current_word);
+    }
+
+    pthread_mutex_destroy(&count_mutex);
+
+    return 0;
+}
